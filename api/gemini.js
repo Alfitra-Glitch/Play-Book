@@ -29,9 +29,17 @@ export default async function handler(req, res) {
       });
     }
 
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
-      {
+    const model = "gemini-3.8-flash";
+
+    const endpoint =
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+    let response;
+    let data;
+
+    // Maksimal 3 kali percobaan
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,20 +53,57 @@ export default async function handler(req, res) {
           ],
           generationConfig: {
             temperature: 0.7,
-            responseMimeType: "application/json"
+            responseMimeType: "application/json",
+            maxOutputTokens: 8192
           }
         })
-      }
-    );
+      });
 
-    const data = await response.json();
+      const raw = await response.text();
+
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        data = {
+          error: {
+            message: "Respons Gemini bukan JSON."
+          }
+        };
+      }
+
+      // Jika berhasil, hentikan percobaan
+      if (response.ok) {
+        break;
+      }
+
+      // Ulangi hanya untuk error sementara
+      const retryable = [429, 500, 503, 504];
+
+      if (!retryable.includes(response.status)) {
+        break;
+      }
+
+      if (attempt === 3) {
+        break;
+      }
+
+      console.log(
+        `Gemini error ${response.status}. Percobaan ${attempt}/3`
+      );
+
+      // Jeda sebelum mencoba kembali
+      await new Promise(resolve =>
+        setTimeout(resolve, attempt * 1500)
+      );
+    }
 
     if (!response.ok) {
       console.error("Gemini API error:", data.error);
 
       return res.status(502).json({
-        error: data.error?.message ||
-          "Gemini gagal memproses permintaan."
+        error:
+          data.error?.message ||
+          `Gemini gagal memproses permintaan. HTTP ${response.status}`
       });
     }
 
@@ -88,7 +133,7 @@ export default async function handler(req, res) {
     console.error("Server error:", error);
 
     return res.status(500).json({
-      error: "Terjadi kesalahan pada server."
+      error: "Terjadi kesalahan pada server: " + error.message
     });
   }
 }
