@@ -117,11 +117,11 @@ input:focus,textarea:focus{outline:2px solid #d9d9ff;border-color:var(--primary)
 
 <section class="card">
   <h2>01 · Koneksi Gemini</h2>
-  <label class="label" for="apiKey">Gemini API Key</label>
-  <input id="apiKey" type="password" placeholder="Masukkan Gemini API Key">
-  <p class="muted">API Key hanya disimpan sementara selama halaman terbuka. Jangan bagikan file HTML yang berisi API Key.</p>
+  <label class="label">Status Koneksi AI</label>
+  <input type="text" value="AI siap digunakan otomatis" disabled>
+  <p class="muted">Layanan AI dikelola oleh server. Kamu tidak perlu memasukkan API Key.</p>
   <div class="row">
-    <button class="btn" id="toggleKey" type="button">Tampilkan API Key</button>
+    <button class="btn" type="button" disabled>Koneksi Otomatis</button>
     <span class="muted">Model: Gemini 2.5 Flash</span>
   </div>
 </section>
@@ -216,12 +216,30 @@ function message(text,type="error"){
   $("status").textContent=text;
 }
 
-$("toggleKey").onclick=()=>{
-  const key=$("apiKey");
-  key.type=key.type==="password"?"text":"password";
-  $("toggleKey").textContent=key.type==="password"?"Tampilkan API Key":"Sembunyikan API Key";
-};
+// KONEKSI GEMINI MELALUI BACKEND VERCEL
+async function askGemini(prompt){
+  const response = await fetch("/api/gemini", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ prompt })
+  });
 
+  const data = await response.json().catch(() => ({
+    error: "Respons server tidak valid."
+  }));
+
+  if(!response.ok){
+    throw new Error(
+      data.error || "Gagal menghubungkan ke layanan AI."
+    );
+  }
+
+  return data;
+}
+
+// MEMBACA PDF
 $("pdfFile").onchange=async e=>{
   const file=e.target.files[0];
   if(!file)return;
@@ -277,49 +295,7 @@ function selected(name){
   return document.querySelector('input[name="'+name+'"]:checked').value;
 }
 
-async function askGemini(prompt){
-  const apiKey=$("apiKey").value.trim();
-
-  if(!apiKey){
-    throw new Error("Masukkan Gemini API Key terlebih dahulu.");
-  }
-
-  const endpoint =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent";
-
-  const response=await fetch(endpoint,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "x-goog-api-key":apiKey
-    },
-    body:JSON.stringify({
-      contents:[{
-        parts:[{text:prompt}]
-      }],
-      generationConfig:{
-        temperature:0.7,
-        responseMimeType:"application/json"
-      }
-    })
-  });
-
-  const data=await response.json();
-
-  if(!response.ok){
-    throw new Error(
-      data.error?.message || "Gemini API gagal. Periksa API Key dan kuota."
-    );
-  }
-
-  const text=data.candidates?.[0]?.content?.parts
-    ?.map(part=>part.text||"").join("");
-
-  if(!text) throw new Error("Gemini tidak memberikan jawaban.");
-
-  return JSON.parse(text);
-}
-
+// PROMPT PEMBUATAN SOAL
 function buildPrompt(material,type,count,level){
   return `
 Kamu adalah guru profesional yang membuat soal pembelajaran.
@@ -365,16 +341,11 @@ ${material}
 `;
 }
 
+// GENERATE SOAL
 $("generate").onclick=async()=>{
   if(busy)return;
 
   const material=$("material").value.trim();
-  const apiKey=$("apiKey").value.trim();
-
-  if(!apiKey){
-    message("Masukkan Gemini API Key terlebih dahulu.");
-    return;
-  }
 
   if(material.length<100){
     message("Masukkan materi yang cukup panjang atau unggah PDF.");
@@ -420,6 +391,7 @@ $("generate").onclick=async()=>{
   }
 };
 
+// MENAMPILKAN SOAL
 function renderQuestions(){
   const host=$("questions");
   host.innerHTML="";
@@ -506,6 +478,7 @@ function renderQuestions(){
   });
 }
 
+// MENGHITUNG NILAI
 function updateScore(){
   let total=0,answered=0,correct=0;
 
@@ -529,6 +502,7 @@ function updateScore(){
     " soal yang dijawab ("+total+" soal pilihan ganda).";
 }
 
+// MEMBUAT RANGKUMAN
 $("summaryBtn").onclick=async()=>{
   if(!sourceMaterial)return;
 
@@ -547,14 +521,14 @@ ${sourceMaterial}
 
 SOAL:
 ${questions.map((q,i)=>(i+1)+". "+q.question).join("\n")}
+
+Keluarkan JSON valid dengan properti:
+{
+  "summary": "Isi rangkuman materi"
+}
 `;
 
-    const result=await askGemini(
-      JSON.stringify({
-        instruction:prompt,
-        output:"Berikan rangkuman sebagai JSON dengan properti summary berisi teks rangkuman."
-      })
-    );
+    const result=await askGemini(prompt);
 
     $("summary").textContent=result.summary||JSON.stringify(result);
     $("summary").classList.remove("hidden");
@@ -568,10 +542,13 @@ ${questions.map((q,i)=>(i+1)+". "+q.question).join("\n")}
   }
 };
 
+// RESET LATIHAN
 $("resetBtn").onclick=()=>{
   questions=[];
+  sourceMaterial="";
   $("questions").innerHTML="";
   $("summary").textContent="";
+  $("score").textContent="";
   $("resultSection").classList.add("hidden");
   $("generateInfo").textContent="Siap membuat soal.";
 };
