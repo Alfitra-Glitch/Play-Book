@@ -1,0 +1,581 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyFlow AI</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary:#5b5ce2;
+  --primary2:#4948cb;
+  --bg:#f5f6ff;
+  --text:#202747;
+  --muted:#75809b;
+  --line:#e5e8f3;
+  --green:#16834e;
+  --red:#c43b3b;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  padding:28px 16px 60px;
+  background:radial-gradient(circle at top left,#e8eaff,transparent 40%),var(--bg);
+  color:var(--text);
+  font-family:Inter,sans-serif;
+}
+.container{max-width:920px;margin:auto}
+header{padding:24px 4px 28px}
+.tag{color:var(--primary);font-size:12px;font-weight:800;letter-spacing:2px}
+h1{font-size:clamp(32px,6vw,48px);letter-spacing:-2px;margin:12px 0}
+header p{color:var(--muted);line-height:1.7;max-width:650px}
+.card{
+  background:white;border:1px solid var(--line);border-radius:18px;
+  padding:24px;margin-bottom:18px;
+  box-shadow:0 10px 30px #29346a0a;
+}
+.card h2{font-size:18px;margin:0 0 18px}
+.label{font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:9px}
+input,textarea,select{
+  width:100%;padding:12px 14px;border:1px solid var(--line);
+  border-radius:10px;font:inherit;color:var(--text);background:#fff;
+}
+textarea{min-height:150px;resize:vertical}
+input:focus,textarea:focus{outline:2px solid #d9d9ff;border-color:var(--primary)}
+.upload{
+  border:2px dashed #c6c8ef;background:#f8f8ff;
+  padding:30px 18px;text-align:center;border-radius:14px;
+  cursor:pointer;transition:.2s;
+}
+.upload:hover{background:#eeeeff;border-color:var(--primary)}
+.upload strong{display:block;margin-bottom:7px}
+.upload span{font-size:13px;color:var(--muted)}
+.file-name{margin-top:12px;color:var(--primary);font-size:13px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.group{min-width:0}
+.options{display:flex;flex-wrap:wrap;gap:7px}
+.options label{cursor:pointer}
+.options input{display:none}
+.options span{
+  display:block;border:1px solid var(--line);padding:10px 13px;
+  border-radius:10px;font-size:13px;
+}
+.options input:checked+span{background:var(--primary);color:white;border-color:var(--primary);font-weight:700}
+.btn{
+  padding:12px 18px;border:1px solid var(--line);border-radius:10px;
+  background:white;color:var(--text);font-weight:700;cursor:pointer;
+}
+.btn:hover{border-color:var(--primary);color:var(--primary)}
+.btn.primary{background:var(--primary);color:white;border-color:var(--primary)}
+.btn.primary:hover{background:var(--primary2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+.muted{color:var(--muted);font-size:13px}
+.message{padding:13px 15px;border-radius:11px;margin-top:14px;font-size:14px;line-height:1.5}
+.error{background:#fce7e5;color:#a72c27}
+.success{background:#e2f5e9;color:#176d42}
+.loading{padding:24px;text-align:center;color:var(--primary);font-weight:600}
+.question-list{display:grid;gap:15px}
+.question{
+  border:1px solid var(--line);border-radius:15px;padding:20px;background:white;
+}
+.qtop{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;margin-bottom:13px}
+.qtitle{font-size:16px;font-weight:700;line-height:1.6;margin-bottom:15px}
+.answer-list{display:grid;gap:9px}
+.answer{
+  padding:12px 14px;border:1px solid var(--line);border-radius:10px;
+  text-align:left;background:#fafaff;color:var(--text);cursor:pointer;
+  font:inherit;
+}
+.answer:hover:not(:disabled){border-color:var(--primary)}
+.answer.correct{background:#e1f5e9;border-color:var(--green)}
+.answer.wrong{background:#fce7e5;border-color:var(--red)}
+.explanation{margin-top:13px;padding:13px;background:#f0f0ff;border-radius:10px;font-size:14px;line-height:1.6}
+.essay{width:100%;min-height:100px;margin-top:8px}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.hidden{display:none!important}
+@media(max-width:650px){
+  .grid{grid-template-columns:1fr}
+  .card{padding:18px}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header>
+  <div class="tag">STUDYFLOW AI · SMART LEARNING</div>
+  <h1>Belajar lebih cerdas dengan AI.</h1>
+  <p>Unggah materi PDF atau tempel teks. Gemini akan membuat latihan soal, memeriksa jawaban pilihan ganda, dan memberikan rangkuman materi.</p>
+</header>
+
+<section class="card">
+  <h2>01 · Koneksi Gemini</h2>
+  <label class="label" for="apiKey">Gemini API Key</label>
+  <input id="apiKey" type="password" placeholder="Masukkan Gemini API Key">
+  <p class="muted">API Key hanya disimpan sementara selama halaman terbuka. Jangan bagikan file HTML yang berisi API Key.</p>
+  <div class="row">
+    <button class="btn" id="toggleKey" type="button">Tampilkan API Key</button>
+    <span class="muted">Model: Gemini 2.5 Flash</span>
+  </div>
+</section>
+
+<section class="card">
+  <h2>02 · Masukkan Materi</h2>
+
+  <label class="upload" for="pdfFile">
+    <strong>📄 Pilih atau jatuhkan file PDF</strong>
+    <span>PDF maksimal 20 MB. PDF hasil scan gambar belum didukung.</span>
+  </label>
+  <input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden>
+  <div id="fileName" class="file-name"></div>
+
+  <div class="row">
+    <button class="btn" id="clearFile" type="button">Hapus PDF</button>
+  </div>
+
+  <p class="muted">Atau tempel materi secara manual:</p>
+  <textarea id="material" placeholder="Tempel materi pembelajaran di sini..."></textarea>
+
+  <div id="status" aria-live="polite"></div>
+</section>
+
+<section class="card">
+  <h2>03 · Pengaturan Latihan</h2>
+
+  <div class="grid">
+    <div class="group">
+      <span class="label">JENIS SOAL</span>
+      <div class="options">
+        <label><input type="radio" name="type" value="pg" checked><span>Pilihan ganda</span></label>
+        <label><input type="radio" name="type" value="esai"><span>Esai</span></label>
+        <label><input type="radio" name="type" value="campuran"><span>Campuran</span></label>
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="label">JUMLAH SOAL</span>
+      <div class="options">
+        <label><input type="radio" name="count" value="5"><span>5</span></label>
+        <label><input type="radio" name="count" value="10" checked><span>10</span></label>
+        <label><input type="radio" name="count" value="15"><span>15</span></label>
+        <label><input type="radio" name="count" value="20"><span>20</span></label>
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="label">KESULITAN</span>
+      <div class="options">
+        <label><input type="radio" name="level" value="mudah"><span>Mudah</span></label>
+        <label><input type="radio" name="level" value="sedang" checked><span>Sedang</span></label>
+        <label><input type="radio" name="level" value="sulit"><span>Sulit</span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="btn primary" id="generate">✨ Buat Soal dengan Gemini</button>
+    <span class="muted" id="generateInfo">Siap membuat soal.</span>
+  </div>
+</section>
+
+<section class="card hidden" id="resultSection">
+  <div class="row" style="justify-content:space-between;margin-top:0">
+    <h2>04 · Hasil Latihan</h2>
+    <div class="tools">
+      <button class="btn" id="summaryBtn">Buat Rangkuman</button>
+      <button class="btn" id="resetBtn">Ulangi</button>
+    </div>
+  </div>
+
+  <div id="score" class="message success hidden"></div>
+  <div id="questions" class="question-list"></div>
+  <div id="summary" class="message hidden"></div>
+</section>
+
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const $ = id => document.getElementById(id);
+
+let questions = [];
+let sourceMaterial = "";
+let busy = false;
+
+function message(text,type="error"){
+  $("status").className="message "+type;
+  $("status").textContent=text;
+}
+
+$("toggleKey").onclick=()=>{
+  const key=$("apiKey");
+  key.type=key.type==="password"?"text":"password";
+  $("toggleKey").textContent=key.type==="password"?"Tampilkan API Key":"Sembunyikan API Key";
+};
+
+$("pdfFile").onchange=async e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+
+  if(file.size>20*1024*1024){
+    message("Ukuran PDF maksimal 20 MB.");
+    e.target.value="";
+    return;
+  }
+
+  if(file.type!=="application/pdf"){
+    message("File harus berupa PDF.");
+    e.target.value="";
+    return;
+  }
+
+  $("fileName").textContent="Sedang membaca PDF...";
+  message("Membaca isi PDF...","success");
+
+  try{
+    const buffer=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buffer)}).promise;
+    let text="";
+
+    for(let i=1;i<=pdf.numPages;i++){
+      const page=await pdf.getPage(i);
+      const content=await page.getTextContent();
+      const pageText=content.items.map(x=>x.str).join(" ");
+      text+="\n[Halaman "+i+"]\n"+pageText+"\n";
+    }
+
+    if(text.trim().length<100){
+      throw new Error("PDF tidak memiliki teks yang cukup. Jika PDF hasil scan, gunakan OCR terlebih dahulu.");
+    }
+
+    $("material").value=text;
+    $("fileName").textContent="✓ "+file.name+" · "+pdf.numPages+" halaman";
+    message("PDF berhasil dibaca.","success");
+
+  }catch(error){
+    $("fileName").textContent="";
+    message(error.message||"Gagal membaca PDF.");
+  }
+};
+
+$("clearFile").onclick=()=>{
+  $("pdfFile").value="";
+  $("fileName").textContent="";
+  message("File PDF dihapus.","success");
+};
+
+function selected(name){
+  return document.querySelector('input[name="'+name+'"]:checked').value;
+}
+
+async function askGemini(prompt){
+  const apiKey=$("apiKey").value.trim();
+
+  if(!apiKey){
+    throw new Error("Masukkan Gemini API Key terlebih dahulu.");
+  }
+
+  const endpoint =
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent";
+
+  const response=await fetch(endpoint,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "x-goog-api-key":apiKey
+    },
+    body:JSON.stringify({
+      contents:[{
+        parts:[{text:prompt}]
+      }],
+      generationConfig:{
+        temperature:0.7,
+        responseMimeType:"application/json"
+      }
+    })
+  });
+
+  const data=await response.json();
+
+  if(!response.ok){
+    throw new Error(
+      data.error?.message || "Gemini API gagal. Periksa API Key dan kuota."
+    );
+  }
+
+  const text=data.candidates?.[0]?.content?.parts
+    ?.map(part=>part.text||"").join("");
+
+  if(!text) throw new Error("Gemini tidak memberikan jawaban.");
+
+  return JSON.parse(text);
+}
+
+function buildPrompt(material,type,count,level){
+  return `
+Kamu adalah guru profesional yang membuat soal pembelajaran.
+
+Gunakan hanya materi yang diberikan. Jangan menambahkan fakta yang tidak ada dalam materi.
+
+Buat tepat ${count} soal.
+Jenis soal: ${type}.
+Kesulitan: ${level}.
+
+Untuk pilihan ganda:
+- Berikan empat pilihan.
+- answer adalah indeks jawaban benar dimulai dari 0.
+- Sertakan explanation.
+
+Untuk esai:
+- Sertakan key sebagai jawaban model.
+- Sertakan rubric sebagai array kriteria penilaian.
+
+Jika jenis campuran, buat kombinasi pilihan ganda dan esai.
+
+Gunakan bahasa Indonesia yang jelas.
+
+Keluarkan JSON array dengan format:
+[
+ {
+  "type":"pg",
+  "question":"Pertanyaan",
+  "options":["A","B","C","D"],
+  "answer":0,
+  "explanation":"Penjelasan"
+ },
+ {
+  "type":"esai",
+  "question":"Pertanyaan esai",
+  "key":"Jawaban model",
+  "rubric":["Kriteria 1","Kriteria 2"]
+ }
+]
+
+MATERI:
+${material}
+`;
+}
+
+$("generate").onclick=async()=>{
+  if(busy)return;
+
+  const material=$("material").value.trim();
+  const apiKey=$("apiKey").value.trim();
+
+  if(!apiKey){
+    message("Masukkan Gemini API Key terlebih dahulu.");
+    return;
+  }
+
+  if(material.length<100){
+    message("Masukkan materi yang cukup panjang atau unggah PDF.");
+    return;
+  }
+
+  busy=true;
+  $("generate").disabled=true;
+  $("generateInfo").textContent="Gemini sedang membuat soal...";
+  $("resultSection").classList.add("hidden");
+  message("Mengirim materi ke Gemini...","success");
+
+  const type=selected("type");
+  const count=Number(selected("count"));
+  const level=selected("level");
+
+  try{
+    sourceMaterial=material;
+
+    const result=await askGemini(
+      buildPrompt(material,type,count,level)
+    );
+
+    if(!Array.isArray(result)||!result.length){
+      throw new Error("Format soal dari Gemini tidak valid.");
+    }
+
+    questions=result;
+    renderQuestions();
+
+    $("resultSection").classList.remove("hidden");
+    $("resultSection").scrollIntoView({behavior:"smooth"});
+
+    message("Soal berhasil dibuat oleh Gemini.","success");
+    $("generateInfo").textContent="Berhasil membuat "+questions.length+" soal.";
+
+  }catch(error){
+    message(error.message||"Terjadi kesalahan.");
+    $("generateInfo").textContent="Pembuatan soal gagal.";
+  }finally{
+    busy=false;
+    $("generate").disabled=false;
+  }
+};
+
+function renderQuestions(){
+  const host=$("questions");
+  host.innerHTML="";
+  $("score").classList.add("hidden");
+  $("summary").classList.add("hidden");
+
+  questions.forEach((q,i)=>{
+    const box=document.createElement("article");
+    box.className="question";
+
+    const top=document.createElement("div");
+    top.className="qtop";
+    top.textContent="SOAL "+(i+1)+" · "+(q.type==="pg"?"PILIHAN GANDA":"ESAI");
+
+    const title=document.createElement("div");
+    title.className="qtitle";
+    title.textContent=q.question;
+
+    box.append(top,title);
+
+    if(q.type==="pg"){
+      const options=document.createElement("div");
+      options.className="answer-list";
+
+      q.options.forEach((option,j)=>{
+        const button=document.createElement("button");
+        button.className="answer";
+        button.textContent=String.fromCharCode(65+j)+". "+option;
+
+        button.onclick=()=>{
+          if(options.dataset.answered)return;
+          options.dataset.answered="true";
+
+          const correct=Number(q.answer);
+
+          [...options.children].forEach((b,index)=>{
+            b.disabled=true;
+            if(index===correct)b.classList.add("correct");
+            else if(index===j)b.classList.add("wrong");
+          });
+
+          const explanation=document.createElement("div");
+          explanation.className="explanation";
+          explanation.textContent=
+            (j===correct?"✓ Jawaban benar. ":"✗ Jawaban belum tepat. ")+
+            (q.explanation||"Jawaban yang benar adalah "+String.fromCharCode(65+correct)+".");
+
+          box.append(explanation);
+          updateScore();
+        };
+
+        options.append(button);
+      });
+
+      box.append(options);
+
+    }else{
+      const answer=document.createElement("textarea");
+      answer.className="essay";
+      answer.placeholder="Tuliskan jawaban kamu di sini...";
+
+      const reveal=document.createElement("button");
+      reveal.className="btn";
+      reveal.style.marginTop="10px";
+      reveal.textContent="Lihat kunci jawaban";
+
+      reveal.onclick=()=>{
+        let key=box.querySelector(".explanation");
+
+        if(!key){
+          key=document.createElement("div");
+          key.className="explanation";
+          key.textContent="Kunci jawaban: "+(q.key||"Tidak tersedia")+
+            (q.rubric?.length?" | Kriteria: "+q.rubric.join("; "):"");
+          box.append(key);
+          reveal.textContent="Kunci jawaban ditampilkan";
+        }
+      };
+
+      box.append(answer,reveal);
+    }
+
+    host.append(box);
+  });
+}
+
+function updateScore(){
+  let total=0,answered=0,correct=0;
+
+  questions.forEach((q,i)=>{
+    if(q.type!=="pg")return;
+    total++;
+
+    const options=$("questions").children[i]?.querySelector(".answer-list");
+    if(!options?.dataset.answered)return;
+
+    answered++;
+
+    if(options.children[Number(q.answer)]?.classList.contains("correct")){
+      correct++;
+    }
+  });
+
+  const score=$("score");
+  score.classList.remove("hidden");
+  score.textContent="Skor pilihan ganda: "+correct+" benar dari "+answered+
+    " soal yang dijawab ("+total+" soal pilihan ganda).";
+}
+
+$("summaryBtn").onclick=async()=>{
+  if(!sourceMaterial)return;
+
+  const btn=$("summaryBtn");
+  btn.disabled=true;
+  btn.textContent="Membuat rangkuman...";
+
+  try{
+    const prompt=`
+Buat rangkuman materi berikut dalam bahasa Indonesia.
+Hubungkan rangkuman dengan soal latihan yang telah dibuat.
+Gunakan judul dan poin-poin penting agar mudah dipelajari.
+
+MATERI:
+${sourceMaterial}
+
+SOAL:
+${questions.map((q,i)=>(i+1)+". "+q.question).join("\n")}
+`;
+
+    const result=await askGemini(
+      JSON.stringify({
+        instruction:prompt,
+        output:"Berikan rangkuman sebagai JSON dengan properti summary berisi teks rangkuman."
+      })
+    );
+
+    $("summary").textContent=result.summary||JSON.stringify(result);
+    $("summary").classList.remove("hidden");
+
+  }catch(error){
+    $("summary").textContent="Gagal membuat rangkuman: "+error.message;
+    $("summary").classList.remove("hidden");
+  }finally{
+    btn.disabled=false;
+    btn.textContent="Buat Rangkuman";
+  }
+};
+
+$("resetBtn").onclick=()=>{
+  questions=[];
+  $("questions").innerHTML="";
+  $("summary").textContent="";
+  $("resultSection").classList.add("hidden");
+  $("generateInfo").textContent="Siap membuat soal.";
+};
+
+</script>
+</body>
+</html>
