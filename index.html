@@ -180,7 +180,7 @@ input:focus,textarea:focus{outline:2px solid #d9d9ff;border-color:var(--primary)
   </div>
 
   <div class="row">
-    <button class="btn primary" id="generate">✨ Buat Soal dengan Gemini</button>
+    <button class="btn primary" id="generate">✨ Buat Soal dengan StudyFlow AI</button>
     <span class="muted" id="generateInfo">Siap membuat soal.</span>
   </div>
 </section>
@@ -354,7 +354,7 @@ $("generate").onclick=async()=>{
 
   busy=true;
   $("generate").disabled=true;
-  $("generateInfo").textContent="Gemini sedang membuat soal...";
+  $("generateInfo").textContent="StudyFlow AI sedang membuat soal...";
   $("resultSection").classList.add("hidden");
   message("Mengirim materi ke Gemini...","success");
 
@@ -370,7 +370,7 @@ $("generate").onclick=async()=>{
     );
 
     if(!Array.isArray(result)||!result.length){
-      throw new Error("Format soal dari Gemini tidak valid.");
+      throw new Error("Format soal dari StudyFlow tidak valid.");
     }
 
     questions=result;
@@ -379,7 +379,7 @@ $("generate").onclick=async()=>{
     $("resultSection").classList.remove("hidden");
     $("resultSection").scrollIntoView({behavior:"smooth"});
 
-    message("Soal berhasil dibuat oleh Gemini.","success");
+    message("Soal berhasil dibuat oleh StudyFlow AI.","success");
     $("generateInfo").textContent="Berhasil membuat "+questions.length+" soal.";
 
   }catch(error){
